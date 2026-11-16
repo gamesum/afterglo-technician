@@ -37,7 +37,7 @@
       "createDesktopShortcut": true,
       "shortcutName": "AFTERGLO Technician"
     },
-    "artifactName": "AFTERGLO-Technician-Setup-${version}.${ext}",
+    "artifactName": "AFTERGLO-Technician-Setup.${ext}",
     "publish": [
       {
         "provider": "github",
