@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:" />
+  <title>AFTERGLO Technician</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="top">
+    <div class="brand">AFTERGLO <span>Technician</span></div>
+    <div class="fw-pill" id="fwPill">Checking for the newest firmware…</div>
+  </header>
+
+  <div class="app-update" id="appUpdate" hidden>
+    <span id="appUpdateText"></span>
+    <button class="btn btn-ghost" id="appUpdateBtn">Restart and install</button>
+  </div>
+
+  <main class="layout">
+    <section class="col-main">
+      <div class="card" id="usbCard"></div>
+      <details class="tech-log" id="logWrap" hidden>
+        <summary>Technical log</summary>
+        <pre id="logBox"></pre>
+      </details>
+    </section>
+
+    <aside class="col-side">
+      <div class="card">
+        <h2>On this network</h2>
+        <p class="hint">Controllers on the same WiFi as this computer show up here by themselves. Nothing is changed by looking.</p>
+        <div id="lanList"></div>
+        <form id="ipForm" class="ip-form">
+          <input id="ipInput" placeholder="Or type an IP address" autocomplete="off" spellcheck="false" />
+          <button class="btn btn-ghost" type="submit">Look up</button>
+        </form>
+        <div class="ip-error" id="ipError"></div>
+      </div>
+      <div class="foot" id="foot"></div>
+    </aside>
+  </main>
+
+  <div class="modal-back" id="modalBack" hidden><div class="modal" id="modal"></div></div>
+  <div class="working" id="working" hidden>
+    <div class="working-box">
+      <div class="working-title" id="workTitle"></div>
+      <div class="bar"><div class="bar-fill" id="workBar"></div></div>
+      <div class="working-step" id="workStep"></div>
+      <div class="working-warn" id="workWarn">Do not unplug the controller or close this window.</div>
+    </div>
+  </div>
+
+  <script src="diagnose.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>

@@ -1,0 +1,49 @@
+{
+  "name": "afterglo-technician",
+  "productName": "AFTERGLO Technician",
+  "version": "1.0.0",
+  "description": "Technician tool: check, update and recover AFTERGLO controllers over USB.",
+  "author": "AFTERGLO Lighting Co.",
+  "private": true,
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test test/diagnose.test.js",
+    "dist": "electron-builder --win nsis --x64 --publish never"
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.11",
+    "esptool-js": "0.7.1"
+  },
+  "devDependencies": {
+    "electron": "45.3.2",
+    "electron-builder": "26.18.0"
+  },
+  "build": {
+    "appId": "org.afterglolighting.technician",
+    "files": [
+      "src/**/*",
+      "recovery/**/*",
+      "node_modules/esptool-js/bundle.js",
+      "package.json"
+    ],
+    "win": {
+      "target": "nsis",
+      "icon": "build/icon.png"
+    },
+    "nsis": {
+      "oneClick": true,
+      "perMachine": false,
+      "createDesktopShortcut": true,
+      "shortcutName": "AFTERGLO Technician"
+    },
+    "artifactName": "AFTERGLO-Technician-Setup-${version}.${ext}",
+    "publish": [
+      {
+        "provider": "github",
+        "owner": "gamesum",
+        "repo": "afterglo-technician"
+      }
+    ]
+  }
+}
