@@ -10,7 +10,9 @@ const dgram = require('dgram');
 // Same feed the AFTERGLO app and afterglolighting.org/firmware.html read.
 // SHARED CONTRACT: shape is { version, images: { <family>: { url, sha256, size, version } } }.
 // See docs/firmware/README.md in the website repo before changing anything here.
-const MANIFEST_URL = 'https://raw.githubusercontent.com/gamesum/firmware-update/main/afterglo2_manifest.json';
+// The v2 manifest: what current apps install. The original afterglo2_manifest.json
+// is frozen at 1.3.1 for app builds older than 67 and must not be used here.
+const MANIFEST_URL = 'https://raw.githubusercontent.com/gamesum/firmware-update/main/afterglo2_manifest_v2.json';
 const RELEASE_PREFIX = 'https://github.com/gamesum/firmware-update/releases/download/';
 const FAMILY = 'roofline';
 const APP_SLOT_SIZE = 0x180000; // app0 / app1 in firmware/partitions_custom.csv
@@ -57,7 +59,8 @@ async function latestFirmware() {
     const m = await res.json();
     const e = m.images && m.images[FAMILY];
     if (!validEntry(e)) throw new Error('The firmware list is not in the expected format.');
-    entry = { version: e.version || m.version, url: e.url, sha256: e.sha256, size: e.size, checkedAt: Date.now() };
+    entry = { version: e.version || m.version, url: e.url, sha256: e.sha256, size: e.size,
+      minAppBuild: Number.isInteger(e.minAppBuild) ? e.minAppBuild : null, checkedAt: Date.now() };
     fs.writeFileSync(cachePath, JSON.stringify(entry));
     online = true;
   } catch (err) {
@@ -69,7 +72,8 @@ async function latestFirmware() {
   const binPath = path.join(fwDir(), entry.sha256 + '.bin');
   let downloaded = false;
   try { downloaded = sha256(fs.readFileSync(binPath)) === entry.sha256; } catch (_) {}
-  return { ok: true, online, problem, downloaded, version: entry.version, sha256: entry.sha256, size: entry.size, checkedAt: entry.checkedAt, url: entry.url };
+  return { ok: true, online, problem, downloaded, version: entry.version, sha256: entry.sha256, size: entry.size,
+    minAppBuild: entry.minAppBuild || null, checkedAt: entry.checkedAt, url: entry.url };
 }
 
 // Returns the verified image bytes, downloading them if this PC has no copy.

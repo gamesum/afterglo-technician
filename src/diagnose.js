@@ -192,6 +192,14 @@
       if (net.connected && net.rssi && net.rssi < -80) add('warn', 'WiFi signal is very weak', 'Signal is ' + net.rssi + ' dBm at the controller.', 'Move the router or add a WiFi extender closer to the controller.');
       if (net.connected && net.clockSynced === false && !faults.has('E04')) add('info', 'Clock not set yet', 'Schedules cannot run until the controller gets the time.', 'Normal for the first minute after a restart. If it stays this way, check the internet connection.');
     }
+    // fw 1.8.0: the controller guessed its strip type (an old install that
+    // never recorded it). Wrong guesses show as rainbow or swapped colours.
+    const leds = lan && lan.leds;
+    if (leds && leds.typeConfirmed === false) {
+      add('warn', 'Light type not confirmed',
+        'This controller had to guess its light type (' + String(leds.ledType || '?').toUpperCase() + ' ' + (leds.colorOrder || '') + ').',
+        'In the AFTERGLO app open Setup, LED settings and press Run light check. It takes 20 seconds.');
+    }
     if (upd.state === 'blocked') add('bad', 'Do not update this controller', upd.reason, 'Leave its firmware alone.');
     if (upd.state === 'available') add('info', 'Firmware update available', 'It has ' + fw + '. The newest is ' + latest + '.', 'Press Update.');
 

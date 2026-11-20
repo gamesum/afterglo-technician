@@ -86,3 +86,11 @@ test('hours formatting', () => {
   assert.equal(D.fmtHours(36000), '10.0 hours');
   assert.equal(D.fmtHours(null), 'Unknown');
 });
+
+test('a guessed light type (fw 1.8.0 typeConfirmed:false) is flagged', () => {
+  const lan = { device: { fw: '1.8.0', prop: 'roofline' }, leds: { ledType: 'rgbw', colorOrder: 'RGB', typeConfirmed: false } };
+  const a = D.assess(null, lan, '1.8.0');
+  assert.ok(a.findings.some(f => f.title === 'Light type not confirmed'));
+  const ok = D.assess(null, { device: lan.device, leds: { ...lan.leds, typeConfirmed: true } }, '1.8.0');
+  assert.ok(!ok.findings.some(f => f.title === 'Light type not confirmed'));
+});

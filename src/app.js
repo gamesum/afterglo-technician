@@ -265,6 +265,8 @@ async function runWrite(kind) {
         { name: 'firmware', data: fw.data, address: ADDR.app0 },
       ];
     }
+    // The strip setup as checked, so the write can never change it unnoticed.
+    const stripBefore = S.usb && S.usb.ledType ? { ledType: S.usb.ledType, colorOrder: S.usb.colorOrder } : null;
     const port = S.port || await pickPort();
     if (!port) throw new Error('No controller found on USB. Plug it in and try again.');
     S.port = port;
@@ -284,11 +286,21 @@ async function runWrite(kind) {
     S.phase = 'result';
     doneWorking();
     render();
-    if (S.usb.started && S.usb.fw === fw.version) {
+    const stripChanged = kind !== 'erase' && stripBefore && S.usb.started && S.usb.ledType &&
+      (S.usb.ledType !== stripBefore.ledType || S.usb.colorOrder !== stripBefore.colorOrder);
+    const appNote = S.latest && S.latest.minAppBuild
+      ? ' The customer needs the AFTERGLO app updated (build ' + S.latest.minAppBuild + ' or newer) to use everything in it.'
+      : '';
+    if (stripChanged) {
+      message('Updated, but the light type changed',
+        'Before: ' + stripBefore.ledType.toUpperCase() + ' ' + stripBefore.colorOrder + '. Now: ' + S.usb.ledType.toUpperCase() + ' ' + S.usb.colorOrder +
+        '. In the AFTERGLO app open Setup, LED settings, set it back to ' + stripBefore.ledType.toUpperCase() + ' ' + stripBefore.colorOrder +
+        ' and save (the controller restarts into it). Tell the office.', 'danger');
+    } else if (S.usb.started && S.usb.fw === fw.version) {
       const extra = kind === 'erase'
         ? ' It is now like a new controller: set it up again in the AFTERGLO app. Its run hours come back from the server once it is on WiFi.'
-        : ' The customer\'s settings were kept.';
-      message('Done. The controller is on firmware ' + fw.version, 'It restarted and reported the new version.' + extra);
+        : ' The customer\'s settings were kept, including the light type.';
+      message('Done. The controller is on firmware ' + fw.version, 'It restarted and reported the new version.' + extra + appNote);
     } else if (S.usb.started) {
       message('Written, but it reports firmware ' + S.usb.fw, 'Expected ' + fw.version + '. Press Check controller again. If it still shows the old version, call the office.', 'danger');
     } else {

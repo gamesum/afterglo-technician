@@ -19,8 +19,9 @@ update it to the newest published firmware, and recover one that will not start.
 
 ## Where the firmware comes from
 
-`https://raw.githubusercontent.com/gamesum/firmware-update/main/afterglo2_manifest.json`,
-the same manifest the AFTERGLO app and afterglolighting.org/firmware.html use.
+`https://raw.githubusercontent.com/gamesum/firmware-update/main/afterglo2_manifest_v2.json`,
+the v2 manifest the current AFTERGLO app installs from (the original
+afterglo2_manifest.json is frozen at 1.3.1 for very old apps).
 Whatever the `roofline` entry points at is "newest". Publishing a release
 without updating the manifest does **not** change what this tool installs.
 The download is checked against the manifest's sha256 and kept on the PC, so
