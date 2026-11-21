@@ -540,6 +540,7 @@ $('appUpdateBtn').addEventListener('click', () => {
 });
 tech.onUpdateReady(showAppUpdate);
 tech.updateReady().then(showAppUpdate);
+$('labelsBtn').addEventListener('click', () => tech.openLabels());
 tech.appVersion().then(v => { $('foot').textContent = 'AFTERGLO Technician ' + v + ' · roofline controllers'; });
 render();
 refreshLatest();

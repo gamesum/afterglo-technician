@@ -224,6 +224,42 @@ function createWindow() {
   }
 }
 
+// Controller labels: Porchlight's own Print controller labels screen, in its
+// own window. Porchlight issues the serials (one transaction on its server),
+// so this app never does; signing in once is remembered (persist: partition).
+const LABELS_URL = 'https://porchlight-f1d62.web.app/app/?go=labels';
+const PORCHLIGHT_ORIGINS = ['https://porchlight-f1d62.web.app', 'https://porchlight-f1d62.firebaseapp.com'];
+// Sign-in popups (Google, Apple) and the pages they pass through.
+const SIGNIN_HOSTS = /^https:\/\/(([a-z0-9-]+\.)*(google\.com|googleapis\.com|gstatic\.com|apple\.com)|porchlight-f1d62\.(firebaseapp\.com|web\.app))\//i;
+let labelsWin = null;
+
+function openLabels() {
+  if (labelsWin && !labelsWin.isDestroyed()) { labelsWin.focus(); return; }
+  labelsWin = new BrowserWindow({
+    width: 1100, height: 820, minWidth: 720, minHeight: 560, parent: undefined,
+    backgroundColor: '#FFFFFF', title: 'Controller labels · Porchlight', autoHideMenuBar: true,
+    webPreferences: { partition: 'persist:porchlight', contextIsolation: true, nodeIntegration: false, sandbox: true, plugins: true },
+  });
+  const wc = labelsWin.webContents;
+  // Google refuses sign-in from a user agent that names Electron.
+  const ua = wc.getUserAgent().replace(/\s*(Electron|afterglo-technician|AFTERGLO Technician)\/\S+/gi, '');
+  wc.setUserAgent(ua);
+  wc.setWindowOpenHandler(({ url }) => {
+    if (SIGNIN_HOSTS.test(url) || url.startsWith('blob:')) {
+      return { action: 'allow', overrideBrowserWindowOptions: { autoHideMenuBar: true, webPreferences: { partition: 'persist:porchlight', sandbox: true, plugins: true } } };
+    }
+    if (/^https:\/\//.test(url)) shell.openExternal(url);
+    return { action: 'deny' };
+  });
+  wc.on('did-create-window', (child) => child.webContents.setUserAgent(ua));
+  wc.on('will-navigate', (e, url) => {
+    if (!PORCHLIGHT_ORIGINS.some(o => url.startsWith(o + '/')) && !SIGNIN_HOSTS.test(url)) e.preventDefault();
+  });
+  labelsWin.on('closed', () => { labelsWin = null; });
+  labelsWin.loadURL(LABELS_URL);
+}
+
+ipcMain.on('labels:open', () => openLabels());
 ipcMain.handle('fw:latest', () => latestFirmware());
 ipcMain.handle('fw:bytes', () => firmwareBytes());
 ipcMain.handle('recovery:files', () => recoveryFiles());

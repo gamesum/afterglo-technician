@@ -12,6 +12,7 @@ contextBridge.exposeInMainWorld('tech', {
   updateReady: () => ipcRenderer.invoke('app:update-ready'),
   onUpdateReady: fn => ipcRenderer.on('app:update-ready', (e, v) => fn(v)),
   installUpdate: () => ipcRenderer.send('app:install-update'),
+  openLabels: () => ipcRenderer.send('labels:open'),
   setBusy: v => ipcRenderer.send('busy', !!v),
   choosePort: id => ipcRenderer.send('serial:chosen', id),
   onLanUpdate: fn => ipcRenderer.on('lan:update', (e, list) => fn(list)),
