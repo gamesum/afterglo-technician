@@ -8,6 +8,7 @@
 // Offsets come from firmware/partitions_custom.csv in gamesum/Afterglo-Fable.
 // If that table ever changes, change them here and rebuild recovery/*.bin.
 import { ESPLoader, Transport } from '../node_modules/esptool-js/bundle.js';
+import * as Demo from './demo.js';
 
 const D = window.Diagnose;
 const tech = window.tech;
@@ -28,6 +29,8 @@ const S = {
   lanList: [],
   port: null,
   working: false,
+  demo: false,      // test mode: made-up controllers, nothing written (demo.js)
+  demoCase: 'update',
 };
 
 // ── Technical log ───────────────────────────────────────────────────────────
@@ -150,7 +153,29 @@ function portBusyMessage(e) {
   return msg;
 }
 
+// Test mode's Check controller: the case picked in the banner, no USB.
+async function demoCheck() {
+  S.working = true;
+  try {
+    const c = Demo.CASES.find(x => x.id === S.demoCase) || Demo.CASES[0];
+    if (!c.log) { S.phase = 'start'; S.startNote = 'none'; S.usb = null; S.lan = null; return; }
+    for (let p = 0; p <= 100; p += 20) { working('Checking the controller (test mode)', 'Restarting it and reading its startup report…', p, false); await sleep(250); }
+    S.rawLog = c.log(latestVersion());
+    log('--- test mode startup report ---
+' + S.rawLog);
+    S.usb = D.parseBootLog(S.rawLog);
+    S.lan = S.usb.started ? Demo.lan(S.usb.ip || '192.168.1.57', latestVersion()) : null;
+    if (S.lan) S.lan.device = { ...S.lan.device, hostname: S.usb.hostname, fw: S.usb.fw };
+    S.phase = 'result'; S.startNote = null;
+  } finally {
+    S.working = false;
+    doneWorking();
+    render();
+  }
+}
+
 async function checkController() {
+  if (S.demo) return demoCheck();
   if (S.working) return;
   S.working = true;
   try {
@@ -189,7 +214,7 @@ async function checkController() {
 // A controller that was checked and then swapped for another one must not be
 // written using the first one's result.
 navigator.serial.addEventListener('disconnect', () => {
-  if (S.working) return; // the flasher reports its own failure
+  if (S.working || S.demo) return; // the flasher reports its own failure
   if (S.phase === 'result') { S.phase = 'start'; S.usb = null; S.lan = null; S.port = null; S.startNote = 'unplugged'; closeModal(); render(); }
 });
 
@@ -238,7 +263,30 @@ async function writeToChip(port, files, { eraseAll, expectHostname, title }) {
 }
 
 // Shared by Update, Repair and Factory erase.
+// Test mode's Update / Repair / Erase: the progress and the result, nothing written.
+async function demoWrite(kind) {
+  S.working = true;
+  const title = { update: 'Updating the controller', repair: 'Repairing the controller', erase: 'Erasing and reinstalling' }[kind] + ' (test mode)';
+  const fw = latestVersion() || '1.8.0';
+  try {
+    for (let p = 0; p <= 100; p += 5) { working(title, p < 50 ? 'Writing firmware ' + fw + ' (1 of 2)…' : 'Writing firmware ' + fw + ' (2 of 2)…', p); await sleep(120); }
+    working(title, 'Checking that it starts on firmware ' + fw + '…', 96); await sleep(600);
+    S.rawLog = Demo.afterWrite(fw);
+    S.usb = D.parseBootLog(S.rawLog);
+    S.lan = null;
+    S.phase = 'result';
+    doneWorking();
+    render();
+    message('Done. The controller is on firmware ' + fw + ' (test mode)', 'Nothing was written: this is test mode. On a real controller this is where it confirms the new version.');
+  } finally {
+    S.working = false;
+    doneWorking();
+    render();
+  }
+}
+
 async function runWrite(kind) {
+  if (S.demo) return demoWrite(kind);
   if (S.working) return;
   S.working = true;
   tech.setBusy(true);
@@ -475,12 +523,13 @@ function renderUsbCard() {
 
 function renderLan() {
   const el = $('lanList');
-  if (!S.lanList.length) {
+  const list = S.demo ? Demo.LAN : S.lanList;
+  if (!list.length) {
     el.innerHTML = '<div class="lan-empty">None found yet. They announce themselves every 10 seconds. This computer must be on the customer\'s WiFi.</div>';
     return;
   }
   const latest = latestVersion();
-  el.innerHTML = S.lanList.slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).map(d => {
+  el.innerHTML = list.slice().sort((a, b) => String(a.name).localeCompare(String(b.name))).map(d => {
     const u = D.updateState(d.fw, d.prop, latest);
     const faults = (d.faults || []).length;
     return `<button class="lan-item" data-ip="${esc(d.address)}"><strong>${esc(d.name || d.hostname)}${faults ? `<span class="tag bad">${faults} error${faults > 1 ? 's' : ''}</span>` : ''}</strong>
@@ -493,7 +542,7 @@ async function showLan(ip) {
   $('ipError').textContent = '';
   working('Reading the controller', 'Asking ' + ip + ' for its status…', null, false);
   let lan;
-  try { lan = await tech.lanQuery(ip); }
+  try { lan = S.demo ? Demo.lan(ip, latestVersion()) : await tech.lanQuery(ip); }
   catch (e) { doneWorking(); $('ipError').textContent = (e.message || String(e)).replace(/^Error invoking remote method '[^']+': (Error: )?/, ''); return; }
   doneWorking();
   const a = D.assess(null, lan, latestVersion());
@@ -523,7 +572,40 @@ async function saveReport(usb, lan, rawLog) {
   await tech.saveReport('AFTERGLO ' + id + ' ' + new Date().toISOString().slice(0, 10) + '.txt', reportText(usb, lan, rawLog));
 }
 
-function render() { renderUsbCard(); renderLan(); }
+// ── Test mode ───────────────────────────────────────────────────────────────
+// Seven clicks on the AFTERGLO name (within 3 seconds) turn it on or off.
+function renderDemoBar() {
+  let bar = $('demoBar');
+  if (!S.demo) { if (bar) bar.remove(); document.body.classList.remove('demo'); return; }
+  document.body.classList.add('demo');
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'demoBar';
+    bar.className = 'demo-bar';
+    document.querySelector('.top').after(bar);
+  }
+  bar.innerHTML = `<b>TEST MODE</b><span>Made-up controllers. Nothing is written or changed. Check controller shows:</span>
+    <select id="demoCase">${Demo.CASES.map(c => `<option value="${c.id}"${c.id === S.demoCase ? ' selected' : ''}>${esc(c.label)}</option>`).join('')}</select>
+    <button class="btn btn-ghost" id="demoOff">Leave test mode</button>`;
+  $('demoCase').addEventListener('change', e => { S.demoCase = e.target.value; });
+  $('demoOff').addEventListener('click', () => setDemo(false));
+}
+function setDemo(on) {
+  if (S.working) return;
+  S.demo = on;
+  S.phase = 'start'; S.usb = null; S.lan = null; S.port = null; S.startNote = null; S.rawLog = '';
+  closeModal();
+  log(on ? 'Test mode on' : 'Test mode off');
+  render();
+}
+let brandClicks = [];
+document.querySelector('.brand').addEventListener('click', () => {
+  const now = Date.now();
+  brandClicks = brandClicks.filter(t => now - t < 3000).concat(now);
+  if (brandClicks.length >= 7) { brandClicks = []; setDemo(!S.demo); }
+});
+
+function render() { renderDemoBar(); renderUsbCard(); renderLan(); }
 
 // ── Start ───────────────────────────────────────────────────────────────────
 $('ipForm').addEventListener('submit', e => { e.preventDefault(); const ip = $('ipInput').value.trim(); if (ip) showLan(ip); });

@@ -13,7 +13,12 @@ h2 { font-size: 1.05rem; margin-bottom: 6px; }
 [hidden] { display: none !important; }
 
 .top { display: flex; align-items: center; justify-content: space-between; padding: 14px 24px; border-bottom: 1px solid var(--border); background: var(--bg2); }
-.brand { font-weight: 900; letter-spacing: .08em; font-size: 1.15rem; }
+.brand { font-weight: 900; letter-spacing: .08em; font-size: 1.15rem; user-select: none; cursor: default; }
+.demo-bar { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 10px 24px; background: #3a2a05; color: #F0C04A; border-bottom: 1px solid #D4A43A; }
+.demo-bar b { letter-spacing: .1em; }
+.demo-bar span { color: #F2F2F4; }
+.demo-bar select { background: #0F0F11; color: #F2F2F4; border: 1px solid #D4A43A; border-radius: 8px; padding: 6px 8px; font: inherit; }
+body.demo .top { border-bottom-color: #D4A43A; }
 .brand span { color: var(--gold); font-weight: 700; letter-spacing: .04em; }
 .fw-pill { font-size: .85rem; padding: 6px 14px; border-radius: 999px; border: 1px solid var(--border); color: var(--muted); }
 .fw-pill.ok { color: var(--ok); border-color: rgba(76,195,138,.4); }

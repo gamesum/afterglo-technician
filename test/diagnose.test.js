@@ -94,3 +94,14 @@ test('a guessed light type (fw 1.8.0 typeConfirmed:false) is flagged', () => {
   const ok = D.assess(null, { device: lan.device, leds: { ...lan.leds, typeConfirmed: true } }, '1.8.0');
   assert.ok(!ok.findings.some(f => f.title === 'Light type not confirmed'));
 });
+
+test('test mode: every sample reads the way its label says', async () => {
+  const Demo = await import('../src/demo.js');
+  const read = id => D.assess(D.parseBootLog(Demo.CASES.find(c => c.id === id).log('1.8.0')), null, '1.8.0');
+  assert.equal(read('update').update.state, 'available');
+  assert.equal(read('current').level, 'ok');
+  assert.equal(read('faults').level, 'bad');
+  assert.match(read('noapp').findings[0].action, /Repair/);
+  assert.match(read('brownout').findings[0].action, /Do not reinstall/);
+  assert.equal(D.parseBootLog(Demo.afterWrite('1.8.0')).fw, '1.8.0');
+});
